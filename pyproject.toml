@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "agent-kit"
 version = "0.1.0"
-description = "Minimal AI provider abstraction for agent harnesses"
+description = "Protocol contracts for AI agents"
 requires-python = ">=3.10"
 dependencies = ["openai>=1.0"]
 

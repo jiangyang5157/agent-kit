@@ -1,6 +1,6 @@
 # Agent-Kit
 
-Minimal AI provider abstraction for agent harnesses. ~300 lines.
+Protocol contracts for AI agents. ~300 lines.
 
 ## Install
 

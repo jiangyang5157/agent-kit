@@ -1,4 +1,4 @@
-"""agent-kit: Minimal AI provider abstraction for agent harnesses."""
+"""agent-kit: Protocol contracts for AI agents."""
 
 __version__ = "0.1.0"
 
