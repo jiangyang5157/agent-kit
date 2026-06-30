@@ -76,7 +76,7 @@ class TestBuildMessages:
         msg = result[0]
         assert msg["role"] == "tool"
         assert msg["tool_call_id"] == "c1"
-        assert msg["content"] == '"found"'
+        assert msg["content"] == "found"
 
     def test_string_content(self, adapter):
         contents = ["plain string"]

@@ -1,12 +1,9 @@
 """OpenAI-compatible adapter base class."""
 import json
-import logging
 from typing import Any
 
 from agent_kit.models import AIResponse, ToolCall, Usage, ToolDeclaration
 from agent_kit.ai_client import AIClient
-
-logger = logging.getLogger(__name__)
 
 JSON_HINT = (
     "IMPORTANT: You MUST respond ONLY with a valid JSON object. "
@@ -110,7 +107,7 @@ class OpenAICompatibleAdapter(AIClient):
         system_content = (
             f"{system_instruction}{json_instruction}"
             if system_instruction
-            else json_instruction or None
+            else (JSON_HINT if response_json else None)
         )
         messages: list[dict] = []
         if system_content:
@@ -128,10 +125,12 @@ class OpenAICompatibleAdapter(AIClient):
                     })
                 elif "tool_responses" in item:
                     for tr in item["tool_responses"]:
+                        result = tr.get("result", {})
+                        content = result if isinstance(result, str) else json.dumps(result)
                         messages.append({
                             "role": "tool",
                             "tool_call_id": tr["id"],
-                            "content": json.dumps(tr.get("result", {})),
+                            "content": content,
                         })
                 elif "tool_calls" in item:
                     tcs = [{
@@ -227,8 +226,9 @@ class OpenAICompatibleAdapter(AIClient):
     def _clean_json_text(raw_text: str) -> str:
         """Remove markdown code fences from JSON response text."""
         text = raw_text.strip()
-        if text.startswith("```json"):
+        # Try to find ```json block anywhere in the text
+        if "```json" in text:
             text = text.split("```json", 1)[1].rsplit("```", 1)[0].strip()
-        elif text.startswith("```"):
+        elif "```" in text:
             text = text.split("```", 1)[1].rsplit("```", 1)[0].strip()
         return text
