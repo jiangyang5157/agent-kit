@@ -135,6 +135,3 @@ The `contents` parameter uses provider-agnostic dicts:
 ]
 ```
 
-## License
-
-Apache 2.0
