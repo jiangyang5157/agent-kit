@@ -1,4 +1,5 @@
 """Tests for OpenAICompatibleAdapter."""
+import threading
 from unittest.mock import MagicMock
 import pytest
 from agent_kit.openai_adapter import OpenAICompatibleAdapter
@@ -268,6 +269,17 @@ class TestParseResponse:
         result = adapter._parse_response(mock_resp, response_json=False)
         assert result.text == ""
 
+    def test_empty_choices(self, adapter):
+        """Response with choices=[], verify AIResponse(text="") returned."""
+        mock_resp = MagicMock()
+        mock_resp.choices = []
+        mock_resp.usage = None
+
+        result = adapter._parse_response(mock_resp, response_json=False)
+        assert result.text == ""
+        assert result.tool_calls is None
+        assert result.usage is None
+
 
 # ── generate_content integration ─────────────────────────────────────
 
@@ -382,3 +394,21 @@ class TestCreateClient:
 
         a = CustomAdapter()
         assert a._get_client() == "custom-client"
+
+    def test_thread_safe(self):
+        """Spawn 2 threads, call _get_client() on each, assert both return same client."""
+        results = []
+
+        def get_it(a):
+            results.append(a._get_client())
+
+        a = FakeAdapter()
+        t1 = threading.Thread(target=get_it, args=(a,))
+        t2 = threading.Thread(target=get_it, args=(a,))
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        assert len(results) == 2
+        assert results[0] is results[1]

@@ -1,5 +1,6 @@
 """OpenAI-compatible adapter base class."""
 import json
+import threading
 from typing import Any
 
 from agent_kit.models import AIResponse, ToolCall, Usage, ToolDeclaration
@@ -35,6 +36,7 @@ class OpenAICompatibleAdapter(AIClient):
         self.provider_label = provider_label
         self._http_timeout = http_timeout
         self._client = None
+        self._client_lock = threading.Lock()
 
     # ── Hook: create OpenAI client ──────────────────────────────────
 
@@ -52,7 +54,9 @@ class OpenAICompatibleAdapter(AIClient):
 
     def _get_client(self):
         if self._client is None:
-            self._client = self._create_client()
+            with self._client_lock:
+                if self._client is None:
+                    self._client = self._create_client()
         return self._client
 
     # ── Core ────────────────────────────────────────────────────────
@@ -129,16 +133,16 @@ class OpenAICompatibleAdapter(AIClient):
                         content = result if isinstance(result, str) else json.dumps(result)
                         messages.append({
                             "role": "tool",
-                            "tool_call_id": tr["id"],
+                            "tool_call_id": tr.get("id", ""),
                             "content": content,
                         })
                 elif "tool_calls" in item:
                     tcs = [{
-                        "id": tc["id"],
+                        "id": tc.get("id", ""),
                         "type": "function",
                         "function": {
-                            "name": tc["name"],
-                            "arguments": json.dumps(tc["args"]),
+                            "name": tc.get("name", ""),
+                            "arguments": json.dumps(tc.get("args", {})),
                         },
                     } for tc in item["tool_calls"]]
                     messages.append({
@@ -195,6 +199,8 @@ class OpenAICompatibleAdapter(AIClient):
 
         Override for custom fields (reasoning_content, etc.).
         """
+        if not response.choices:
+            return AIResponse(text="")
         msg = response.choices[0].message
         text = (
             self._clean_json_text(msg.content or "")
